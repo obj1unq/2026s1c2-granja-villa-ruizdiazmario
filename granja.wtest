@@ -1,0 +1,260 @@
+import wollok.game.*
+import cultivos.*
+import granja.*
+import personaje.*
+import mercado.*
+import aspersor.*
+
+describe "Tests de la granja" {
+
+    test "Sembrar maiz agrega un cultivo a la granja" {
+
+        const maiz = new Maiz(position = game.at(1,1))
+
+        granja.sembrar(maiz)
+
+        assert.equals(1, granja.cultivos().size())
+    }
+
+    test "Regar maiz bebe lo convierte en adulto" {
+
+        const maiz = new Maiz(position = game.at(1,1))
+
+        maiz.regar()
+
+        assert.that(not maiz.esBebe())
+    }
+
+    test "Regar trigo aumenta su etapa" {
+
+        const trigo = new Trigo(position = game.at(1,1))
+
+        trigo.regar()
+
+        assert.equals(1, trigo.etapa())
+    }
+
+    test "Tomaco se mueve hacia arriba al regarse" {
+
+        const tomaco = new Tomaco(
+            position = game.at(5,5)
+        )
+
+        tomaco.regar()
+
+        assert.equals(6, tomaco.position().y())
+    }
+
+    test "Cosechar maiz adulto lo agrega a cosechados" {
+
+        const maiz = new Maiz(position = game.at(1,1))
+
+        granja.sembrar(maiz)
+
+        maiz.regar()
+
+        granja.cosecharCultivosEn(
+            game.at(1,1)
+        )
+
+        assert.equals(
+            1,
+            granja.cantidadParaVender()
+        )
+    }
+
+    test "Maiz adulto vale 150 monedas" {
+
+        const maiz = new Maiz(position = game.at(1,1))
+
+        maiz.regar()
+
+        assert.equals(150, maiz.valor())
+    }
+
+    test "Trigo en etapa 3 vale 200 monedas" {
+
+        const trigo = new Trigo(position = game.at(1,1))
+
+        trigo.regar()
+        trigo.regar()
+        trigo.regar()
+
+        assert.equals(200, trigo.valor())
+    }
+
+    test "Tomaco vale 80 monedas" {
+
+        const tomaco = new Tomaco(
+            position = game.at(1,1)
+        )
+
+        assert.equals(80, tomaco.valor())
+    }
+
+    test "Vender cultivos aumenta el oro del personaje" {
+
+        const mercado = new Mercado(
+            position = game.at(1,1),
+            monedas = 1000
+        )
+
+        granja.agregarMercado(mercado)
+
+        personaje.position(game.at(1,1))
+
+        const maiz = new Maiz(position = game.at(1,1))
+
+        maiz.regar()
+
+        granja.sembrar(maiz)
+
+        granja.cosecharCultivosEn(
+            game.at(1,1)
+        )
+
+        granja.venderTodo()
+
+        assert.equals(150, personaje.oro())
+    }
+}
+
+describe "Tests bonus de granja" {
+
+    test "Un mercado guarda los cultivos vendidos" {
+
+        const mercado = new Mercado(
+            position = game.at(1,1),
+            monedas = 1000
+        )
+
+        granja.agregarMercado(mercado)
+
+        personaje.position(game.at(1,1))
+
+        const maiz = new Maiz(
+            position = game.at(1,1)
+        )
+
+        maiz.regar()
+
+        granja.sembrar(maiz)
+
+        granja.cosecharCultivosEn(
+            game.at(1,1)
+        )
+
+        granja.venderTodo()
+
+        assert.equals(
+            1,
+            mercado.mercaderia().size()
+        )
+    }
+
+    test "Un mercado pierde monedas al comprar" {
+
+        const mercado = new Mercado(
+            position = game.at(1,1),
+            monedas = 1000
+        )
+
+        granja.agregarMercado(mercado)
+
+        personaje.position(game.at(1,1))
+
+        const maiz = new Maiz(
+            position = game.at(1,1)
+        )
+
+        maiz.regar()
+
+        granja.sembrar(maiz)
+
+        granja.cosecharCultivosEn(
+            game.at(1,1)
+        )
+
+        granja.venderTodo()
+
+        assert.equals(850, mercado.monedas())
+    }
+
+    test "No se puede vender fuera de un mercado" {
+
+        const maiz = new Maiz(
+            position = game.at(1,1)
+        )
+
+        maiz.regar()
+
+        granja.sembrar(maiz)
+
+        granja.cosecharCultivosEn(
+            game.at(1,1)
+        )
+
+        personaje.position(game.at(5,5))
+
+        assert.throwsException {
+            granja.venderTodo()
+        }
+    }
+
+    test "Aspersor riega cultivos alrededor" {
+
+        const trigo = new Trigo(
+            position = game.at(5,4)
+        )
+
+        granja.sembrar(trigo)
+
+        const aspersor = new Aspersor(
+            position = game.at(5,5)
+        )
+
+        aspersor.regarAlrededor()
+
+        assert.equals(1, trigo.etapa())
+    }
+
+    test "Aspersor no riega cultivos lejanos" {
+
+        const trigo = new Trigo(
+            position = game.at(1,1)
+        )
+
+        granja.sembrar(trigo)
+
+        const aspersor = new Aspersor(
+            position = game.at(5,5)
+        )
+
+        aspersor.regarAlrededor()
+
+        assert.equals(0, trigo.etapa())
+    }
+
+    test "Aspersor riega multiples cultivos" {
+
+        const trigo = new Trigo(
+            position = game.at(5,4)
+        )
+
+        const maiz = new Maiz(
+            position = game.at(5,6)
+        )
+
+        granja.sembrar(trigo)
+        granja.sembrar(maiz)
+
+        const aspersor = new Aspersor(
+            position = game.at(5,5)
+        )
+
+        aspersor.regarAlrededor()
+
+        assert.equals(1, trigo.etapa())
+        assert.that(not maiz.esBebe())
+    }
+}
