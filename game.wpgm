@@ -1,6 +1,10 @@
 import wollok.game.*
 import personaje.*
 import cultivos.*
+import granja.*
+import direcciones.*
+import aspersor.*
+import mercado.*
 
 program farmville {
 	//  CONFIG	
@@ -8,11 +12,97 @@ program farmville {
 	game.height(10)
 	game.width(10)
 	game.ground("ground.png")
-
+	game.errorReporter(personaje)
+	
 	//  VISUALES
  	game.addVisualCharacter(personaje)
- 	game.addVisual(new Maiz()) // Se agrega a modo de prueba
  	
- 	//  COMIENZA
+	game.addVisual(
+		new Maiz(position = game.at(1,1))
+	)
+
+	const mercado1 = new Mercado(
+		position = game.at(2,2),
+		monedas = 5000
+	)
+
+	granja.agregarMercado(mercado1)
+	
+	const mercado2 = new Mercado(
+		position = game.at(7,7),
+		monedas = 2000
+	)
+
+	granja.agregarMercado(mercado2)
+
+	//  COMIENZA
 	game.start()
+
+	// CONTROLES
+	keyboard.up().onPressDo {
+		personaje.mover(arriba)
+	}
+
+	keyboard.down().onPressDo {
+		personaje.mover(abajo)
+	}
+
+	keyboard.right().onPressDo {
+		personaje.mover(derecha)
+	}
+
+	keyboard.left().onPressDo {
+		personaje.mover(izquierda)
+	}
+
+	keyboard.m().onPressDo {
+		granja.sembrar(
+			new Maiz(position = personaje.position())
+			)
+	}
+
+	keyboard.t().onPressDo {
+		granja.sembrar(
+			new Trigo(position = personaje.position())
+			)
+	}
+
+	keyboard.o().onPressDo {
+		granja.sembrar(
+			new Tomaco(position = personaje.position())
+		)
+	}
+
+	keyboard.r().onPressDo {
+		granja.regarCultivoEn(
+			personaje.position()
+		)
+	}
+
+	keyboard.c().onPressDo {
+		granja.cosecharCultivosEn(
+			personaje.position()
+		)
+	}
+
+	keyboard.v().onPressDo {
+		granja.venderTodo()
+	}
+
+	keyboard.space().onPressDo {
+		game.say(personaje,
+			"tengo " + personaje.oro().toString() +
+			" monedas, y " +
+			granja.cantidadParaVender().toString() +
+			" plantas para vender"
+		)
+	}
+
+	keyboard.a().onPressDo {
+		const aspersor = new Aspersor(
+			position = personaje.position()
+		)
+		game.addVisual(aspersor)
+		aspersor.activar()
+	}
 }
